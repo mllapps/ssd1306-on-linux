@@ -3,7 +3,7 @@
 * It makes use of the Linux I2C Subsystem and a light-weight rendering library "digitRenderer"
 * (part of this repository) to render numeric digits and symbols on the display. 
 */
-
+#include<linux/version.h>
 #include<linux/module.h>
 #include<linux/kernel.h>
 #include<linux/init.h>
@@ -143,7 +143,7 @@ static struct file_operations ssd1306temp_fOps={
 };
 
 //I2C Adapter -I2c Bus
-#define I2C_BUS 8                           //For Orange Pi 4 LTS Device. Checkout documentation for your device for the bus number.
+#define I2C_BUS 1                           //For Orange Pi 4 LTS Device. Checkout documentation for your device for the bus number.
 struct i2c_adapter *ssd1306_i2c_adapter;
 
 //I2c Client/Slave -SSD1306
@@ -162,7 +162,11 @@ struct i2c_device_id ssd1306_i2c_device_id[]={
 };
 
     //Probe function for SSD1306
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
 static int ssd1306_i2c_probe(struct i2c_client * client, const struct i2c_device_id *device_id){
+#else
+static int ssd1306_i2c_probe(struct i2c_client * client){
+#endif
     initDisplay(); //Ititialize SSD1306 
     //renderTest(); //Display all digits and symbols
     //renderSymbol(KELVIN,1,56); //Test the newly added character 'K'
@@ -170,10 +174,16 @@ static int ssd1306_i2c_probe(struct i2c_client * client, const struct i2c_device
 }
 
     //Remove function for SSD1306
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
 static int ssd1306_i2c_remove(struct i2c_client * client){
+#else
+static void ssd1306_i2c_remove(struct i2c_client * client){
+#endif
     clearDisplay();
     sendCommand(SSD1306_DISPLAY_OFF); //Entire display OFF
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
     return 0;
+#endif
 }
 
     //SSD1306 driver structure
@@ -200,7 +210,11 @@ static int __init ssd1306temp_init(void){
     }
 
     printk(KERN_INFO"Success! : Device numer Major: %d Minor %d",ssd1306_dev_nr>>20,ssd1306_dev_nr&0xfffff);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
     if((ssd1306temp=class_create(THIS_MODULE,DRIVER_CLASS))==NULL){
+#else
+    if((ssd1306temp=class_create(CLIENT_NAME))==NULL){
+#endif
         printk(KERN_ERR"Couldnot create class for device!\n");
         goto classError;
     }
